@@ -1,6 +1,7 @@
 from argparse import ArgumentParser, Namespace
 from functools import lru_cache
 
+LINES: list[list[str]]
 
 class CliArgs(Namespace):
     file_path: str
@@ -18,25 +19,17 @@ def parse_input(path: str) -> list[list[str]]:
     return lines
 
 
-LINES: list[list[str]]
-
-
 @lru_cache(maxsize=50)  # Magic sauce
 def count_timelines(x: int, y: int) -> int:
-    global LINES
-    # End condition
     if y >= len(LINES) - 1:
         return 1
-    # Ray continues
     if LINES[y + 1][x] == ".":
         return count_timelines(x, y + 1)
-    # Ray encounters a splitter
     elif LINES[y + 1][x] == "^":
         return (
             count_timelines(x - 1, y + 1)  # -
             + count_timelines(x + 1, y + 1)
         )
-
     else:
         raise RuntimeError("That cannot happen")
 
