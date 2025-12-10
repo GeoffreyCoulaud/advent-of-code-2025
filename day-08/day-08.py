@@ -67,32 +67,36 @@ def main() -> None:
 
     # Merge circuits with N connections
     box_index_pairs: list[tuple[int, int]] = build_sorted_pairs(positions)
-    for i, (a_box_index, b_box_index) in enumerate(box_index_pairs[: args.connections]):
+    for box_index, (a_box_index, b_box_index) in enumerate(
+        box_index_pairs[: args.connections]
+    ):
         a_circuit_index = circuit_per_box[a_box_index]
         b_circuit_index = circuit_per_box[b_box_index]
 
-        msg = "%d -  %s <-> %s"
-        msg_args = [i, positions[a_box_index], positions[b_box_index]]
+        msg = "%02d -  %s <-> %s"
+        msg_args = [box_index, positions[a_box_index], positions[b_box_index]]
 
+        # Skip if A and B are in the same circuit
         if a_circuit_index == b_circuit_index:
             msg += " Skipped"
             logging.info(msg, *msg_args)
             continue
 
-        # Assign box to new circuit
-        circuit_per_box[b_box_index] = a_circuit_index
-        circuits[b_circuit_index].remove(b_box_index)
-        circuits[a_circuit_index].add(b_box_index)
+        # Assign B (and its siblings) to A's circuit
+        for box_index in circuits[b_circuit_index]:
+            circuit_per_box[box_index] = a_circuit_index
+        circuits[a_circuit_index] |= circuits[b_circuit_index]
+        circuits[b_circuit_index] = set()
 
         msg += " Merged into %d"
-        msg_args += [a_circuit_index]
+        msg_args.append(a_circuit_index)
         logging.info(msg, *msg_args)
 
     # Sort the circuits by size
     circuits = [c for c in circuits if len(c) > 0]
     sorted_circuits = sorted(circuits, key=len, reverse=True)
     for circuit in sorted_circuits:
-        logging.info(", ".join("%02d" % box_index for box_index in circuit))
+        logging.debug(", ".join("%02d" % box_index for box_index in circuit))
 
     # Compute the result
     result = 1
